@@ -104,7 +104,7 @@ fn pre_add(cmd Command) ! {
 		panic('Failed to read bearer token!')
 	}
 	header := build_auth_header(token)
-	secret_name := cmd.flags.get_string('value') or {
+	secret_name := cmd.flags.get_string('secret-name') or {
 		println(err)
 		panic('Failed to get `value` flag: ${err}')
 	}
@@ -135,7 +135,7 @@ fn pre_update(cmd Command) ! {
 		panic('Failed to read bearer token!')
 	}
 	header := build_auth_header(token)
-	secret_name := cmd.flags.get_string('value') or {
+	secret_name := cmd.flags.get_string('secret-name') or {
 		println(err)
 		panic('Failed to get `value` flag: ${err}')
 	}
@@ -187,7 +187,7 @@ fn encrypt_secret(secret string, public_key RepoSecret) NewSecret {
 }
 
 fn put_secret(cmd Command) ! {
-	secret_name := cmd.flags.get_string('value') or {
+	secret_name := cmd.flags.get_string('secret-name') or {
 		println(err)
 		panic('Failed to get `value` flag: ${err}')
 	}
@@ -219,13 +219,10 @@ fn put_secret(cmd Command) ! {
 
 	config := config_builder(url, http.Method.put, auth, json.encode(encrypt_secret(value,
 		pub_key)))
-	println('----- GENERATED -----')
-	println(config)
 	res := http.fetch(config) or {
 		println(err)
 		panic('Failed to set secret')
 	}
-	println(res)
 }
 
 fn config_builder(url string, method http.Method, header http.Header, data string) http.FetchConfig {
@@ -253,8 +250,7 @@ fn check_secret_existence(name string, url string, auth http.Header) bool {
 		println(err)
 		panic('Network error 2')
 	}
-	decoded := json.decode(RemoteSecret, data.body) or { return false }
-	if decoded.name == '' {
+	if data.status_code >= 300 {
 		return false
 	}
 	return true
